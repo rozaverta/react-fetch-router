@@ -1,0 +1,59 @@
+{
+  "name": "react-fetch-router",
+  "description": "Routing library for React. Works with JSON AJAX responses (native fetch object). The router uses page types (derived from the response), rather than URL paths.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "module": "src/index.js",
+  "directories": {},
+  "repository": "rozaverta/react-fetch-router",
+  "files": [
+    "src",
+    "cjs",
+    "index.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "prebuild": "rimraf cjs"
+  },
+  "keywords": [
+    "react",
+    "react-router",
+    "router",
+    "route",
+    "fetch",
+    "fetch-router",
+    "ajax",
+    "json",
+    "json-router"
+  ],
+  "author": "GoshaV Maniako (https://github.com/rozaverta)",
+  "license": "MIT",
+  "dependencies": {
+    "history": "^4.9.0",
+    "typeof-utility": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "@babel/preset-react": "^7.0.0",
+    "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
+    "prop-types": "^15.7.2",
+    "react": "^16.8.6",
+    "rimraf": "^2.6.3",
+    "rollup": "^1.16.2",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.0.0",
+    "rollup-plugin-node-resolve": "^5.1.0",
+    "rollup-plugin-replace": "^2.2.0",
+    "rollup-plugin-size-snapshot": "^0.9.0",
+    "rollup-plugin-uglify": "^6.0.2"
+  },
+  "peerDependencies": {
+    "react": "^16.8.6"
+  }
+}
