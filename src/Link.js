@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== "production") {
 		/**
 		 * Link component (default "a")
 		 */
-		component: PropTypes.element,
+		component: PropTypes.oneOfType([PropTypes.string, PropTypes.func, PropTypes.object]),
 
 		/**
 		 * Relative URL

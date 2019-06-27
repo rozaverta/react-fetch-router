@@ -12,7 +12,7 @@ import {
 	PAGE_INIT,
 	QUERY_TYPE_PAGE
 } from "./constants";
-import {setMount, noop, runHook, createPathFromLocation} from "./utils";
+import {setMount, noop, runHook, createPathFromLocation, rand} from "./utils";
 import PropTypes from 'prop-types';
 
 const history = createBrowserHistory({});
@@ -30,13 +30,13 @@ function getLocation() {
 	return history.location;
 }
 
-function createHistoryState(path, pageData, optionsStore) {
+function createHistoryState(path, payload, optionsStore) {
 	const store = {
 		...optionsStore, path
 	};
 
 	if (!store.hasOwnProperty("title")) {
-		store.title = pageData.title || document.title
+		store.title = payload.data && payload.data.title || document.title
 	}
 
 	return store
@@ -123,22 +123,25 @@ class Router extends React.Component {
 				testPart();
 			};
 
-			runHook(hook, closure, {
+			runHook(hook(), closure, {
 				type: ACTION_TYPE_PAGE_LOAD,
+				id: state.id,
 				page: state.page,
 				data: state.data
 			}, state)
 		};
 
-		const success = payload => {
+		const success = (payload, id) => {
 			render({
-				page: payload.page,
+				id,
+				page: String(payload.page),
 				data: payload.data
 			})
 		};
 
-		const failure = (error, path) => {
+		const failure = (error, path, id) => {
 			render({
+				id,
 				page: self.props.typePageError || PAGE_ERROR,
 				data: {
 					path,
@@ -153,8 +156,12 @@ class Router extends React.Component {
 
 		const route = (path, options = {}) => {
 
-			if (self.queryOpen) {
+			const wait = () => {
 				self.queryPart = {path, options}
+			};
+
+			if (self.queryOpen) {
+				wait()
 			} else {
 				self.queryOpen = true;
 
@@ -164,46 +171,55 @@ class Router extends React.Component {
 						historyState = {},
 						...fetchOptions
 					} = options,
+					id = rand("queryId_"),
 					queryProps = (self.props.prepareQuery || prepareQuery)(path, fetchOptions, prepareQuery);
 
 				query(
 					queryProps,
 					{
-						hook,
+						id,
+						hook: hook(),
 						type: QUERY_TYPE_PAGE,
-						success: json => {
+						success(json) {
 
-							const {type, payload} = json;
+							const {type, path: changePath = false, payload} = json;
 
 							switch (type) {
 
 								case ANSWER_TYPE_ERROR :
-									failure(new Error(payload), path);
+									failure(new Error(payload), path, id);
 									break;
 
 								case ANSWER_TYPE_REDIRECT :
-									runHook(hook, redirect, {type: ACTION_TYPE_PAGE_REDIRECT, to: payload}, payload);
+									self.queryOpen = false;
+									runHook(hook(), redirect, {type: ACTION_TYPE_PAGE_REDIRECT, to: payload}, payload);
 									break;
 
 								case ANSWER_TYPE_PAGE :
-									if (isString(json.path) && json.path[0] === "/") {
-										path = json.path
+									if (isString(changePath) && changePath[0] === "/") {
+										path = changePath
 									}
 									const
 										method = replace || path === createPathFromLocation(self.location) ? "replace" : "push",
 										store = (self.props.createHistoryState || createHistoryState)(path, payload, historyState, createHistoryState);
 
 									pushReplace(method, path, store);
-									success(json.payload);
+									success(payload, id);
 									break;
 
 								default :
-									failure(new Error(`Unknown server answer type: ${type}`), path);
+									failure(new Error(`Unknown server answer type: ${type}`), path, id);
 									break;
 							}
 						},
-						error: e => {
-							failure(e, path)
+
+						error(e) {
+							failure(e, path, id)
+						},
+
+						abort() {
+							self.queryOpen = false;
+							wait()
 						}
 					}
 				);

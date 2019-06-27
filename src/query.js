@@ -45,22 +45,22 @@ function complete(success, hook, id, type, callback, result) {
 
 export default function query(props, options = {}) {
 
-	const {type = QUERY_TYPE_UNKNOWN, abort} = options.type;
+	const {type = QUERY_TYPE_UNKNOWN, id: queryId = false, abort} = options;
 
 	if(locked.indexOf(type) > -1) {
 		isFunc(abort) && abort(type)
 	}
 	else {
 		locked.push(type);
-		const {hook, success, error} = options, id = rand("queryId_");
+		const {hook, success, error} = options, id = queryId || rand("queryId_");
 		let _fetch;
 
 		if(isString(props)) {
 			_fetch = () => fetch(props);
 		}
 		else {
-			const {input, ...init} = props;
-			_fetch = () => fetch(input, init);
+			const {url, ...init} = props;
+			_fetch = () => fetch(url, init);
 		}
 
 		runHook(

@@ -74,7 +74,7 @@ if (process.env.NODE_ENV !== "production") {
 		/**
 		 * Controller component.
 		 */
-		component: PropTypes.element.isRequired,
+		component: PropTypes.oneOfType([PropTypes.string, PropTypes.func, PropTypes.object]).isRequired,
 
 		/**
 		 * Page controller name.

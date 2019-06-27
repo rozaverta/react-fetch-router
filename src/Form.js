@@ -13,7 +13,7 @@ class Form extends React.Component
 		self.onSubmit = e => {
 			e && isFunc(e.preventDefault) && e.preventDefault();
 			const {props, context} = self;
-			const options = (form, props) => {
+			const options = (form) => {
 				return {
 					body: new FormData(form)
 				}
@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== "production") {
 		/**
 		 * Form component (default "form")
 		 */
-		component: PropTypes.element,
+		component: PropTypes.oneOfType([PropTypes.string, PropTypes.func, PropTypes.object]),
 
 		/**
 		 * Preparation of data (query options) before sending

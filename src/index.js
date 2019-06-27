@@ -5,5 +5,6 @@ export { default as RouterContext } from "./RouterContext";
 export { default as Link } from "./Link";
 export { default as Form } from "./Form";
 export { default as query } from "./query";
+export { default as createReduxReducer } from "./createReduxReducer";
 import * as constants from "./constants";
 export { constants };
