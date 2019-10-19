@@ -12,10 +12,11 @@ import {
 	PAGE_INIT,
 	QUERY_TYPE_PAGE
 } from "./constants";
-import {setMount, noop, runHook, createPathFromLocation, rand} from "./utils";
+import {setMount, noop, runHook, createPathFromLocation, randId} from "./utils";
 import PropTypes from 'prop-types';
 
 const history = createBrowserHistory({});
+const extendActions = {};
 
 let historyInit = false;
 
@@ -83,18 +84,13 @@ class Router extends React.Component {
 
 	constructor(props) {
 		super(props);
-		const self = this;
+		const self = this, reload = props.reload === true;
 
+		self.init = false;
 		self.queryOpen = false;
 		self.queryPart = false;
-		self.updatePageComponent = true;
 		self.location = getLocation();
-		self.reload = props.reload === true;
-
-		self.state = {
-			page: props.page || props.typePageInit || PAGE_INIT,
-			data: props.data || {}
-		};
+		self.state = {};
 
 		const hook = () => {
 			return isFunc(self.props.hook) ? self.props.hook : noop;
@@ -171,7 +167,7 @@ class Router extends React.Component {
 						historyState = {},
 						...fetchOptions
 					} = options,
-					id = rand("queryId_"),
+					id = randId(),
 					queryProps = (self.props.prepareQuery || prepareQuery)(path, fetchOptions, prepareQuery);
 
 				query(
@@ -208,7 +204,13 @@ class Router extends React.Component {
 									break;
 
 								default :
-									failure(new Error(`Unknown server answer type: ${type}`), path, id);
+									if(extendActions.hasOwnProperty(type)) {
+										self.queryOpen = false;
+										runHook(hook(), extendActions[type], {type, payload}, payload)
+									}
+									else {
+										failure(new Error(`Unknown server answer type: ${type}`), path, id)
+									}
 									break;
 							}
 						},
@@ -248,22 +250,49 @@ class Router extends React.Component {
 		};
 		self.getLocation = () => self.location;
 		self.getHistory = () => history;
-	}
 
-	componentDidMount() {
-		const self = this;
-		if (self.reload) {
-			self.reload = false;
-			self.route(createPathFromLocation(self.location), {change: true})
+		// initial function
+
+		if(reload) {
+			self.reload = () => {
+				self.init = true;
+				self.reload = false;
+				route(createPathFromLocation(self.location), {change: true})
+			}
+		}
+		else {
+			self.reload = () => {
+				self.init = true;
+				self.reload = false;
+				render({
+					id: randId(),
+					page: props.page || props.typePageInit || PAGE_INIT,
+					data: props.data || {}
+				})
+			}
 		}
 	}
 
+	componentDidMount() {
+		this.reload && this.reload()
+	}
+
 	componentWillUnmount() {
-		this.unlisten && this.unlisten();
+		this.unlisten && this.unlisten()
 	}
 
 	render() {
-		const self = this, {props, state, getLocation: location, getHistory: history, route, push, replace} = self;
+
+		// initial state
+		const self = this;
+		if(! self.init) {
+			const {component: Component = false} = self.props;
+			return (
+				Component ? <Component /> : null
+			)
+		}
+
+		const {props, state, getLocation: location, getHistory: history, route, push, replace} = self;
 		setMount(null);
 
 		return (
@@ -328,7 +357,18 @@ if (process.env.NODE_ENV !== "production") {
 		 * Create state history from page data
 		 */
 		createHistoryState: PropTypes.func,
+
+		/**
+		 * Initial root component
+		 */
+		componentInitial: PropTypes.oneOfType([PropTypes.string, PropTypes.func, PropTypes.object])
 	};
+}
+
+export function createRouterAction(action, callback) {
+	if( !extendActions.hasOwnProperty(action) && isFunc(callback) ) {
+		extendActions[action] = callback
+	}
 }
 
 export default Router;

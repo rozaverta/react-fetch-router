@@ -29,9 +29,9 @@ function normalizeLink(link = "/") {
 	return link;
 }
 
-function rand( prefix = "" )
+function randId()
 {
-	return prefix + Math.random().toString(36).substr(2)
+	return "queryId" + Math.random().toString(36).substr(2)
 }
 
 function noop() {}
@@ -65,4 +65,4 @@ function createPathFromLocation(location) {
 	return location.pathname + location.search;
 }
 
-export {setMount, getMount, isMount, normalizeLink, rand, noop, runHook, createPathFromLocation, ErrorComponent}
+export {setMount, getMount, isMount, normalizeLink, randId, noop, runHook, createPathFromLocation, ErrorComponent}

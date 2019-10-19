@@ -1,5 +1,5 @@
 import {isFunc, isString} from "typeof-utility";
-import {rand, runHook} from "./utils";
+import {randId, runHook} from "./utils";
 import {ACTION_TYPE_QUERY_CLOSE, ACTION_TYPE_QUERY_OPEN, QUERY_TYPE_UNKNOWN} from "./constants";
 
 const locked = [];
@@ -52,7 +52,7 @@ export default function query(props, options = {}) {
 	}
 	else {
 		locked.push(type);
-		const {hook, success, error} = options, id = queryId || rand("queryId_");
+		const {hook, success, error} = options, id = queryId || randId();
 		let _fetch;
 
 		if(isString(props)) {

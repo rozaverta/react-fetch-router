@@ -139,6 +139,21 @@ echo json_encode([
 ]);
 ```
 
+## Library components and functions
+
+| **Component** | **Description** |
+| --- | --- |
+| `<Router/>` | The common low-level interface for all router components. |
+| `<Route/>` | Basic component for render some UI when a request page type matches the route page type path. |
+| `<RouteDefault/>` | The default component for render some UI when the type of the request page does not correspond to any of the above components of the `<Route/>`. |
+| `<Link/>` | Provides declarative, accessible navigation around your application. |
+| `<Form/>` | Submitting form data to your application.  |
+| `RouterContext` | Global context. See the React Context documentation. |
+| `constants` | Library constants for types and queries. |
+| `query` | A wrapper for the native `fetch` object. |
+| `createReduxReducer` | Integration with the `redux` library. Creates a new reducer. As arguments, the function accepts current store object, context, and hook function for redirection. |
+| `createRouterAction` | Create custom router action. |
+
 ___
 
 Documentation and full description will appear later. Coming soon... Maybe :)
