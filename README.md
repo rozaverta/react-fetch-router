@@ -144,6 +144,7 @@ echo json_encode([
 | **Component** | **Description** |
 | --- | --- |
 | `<Router/>` | The common low-level interface for all router components. |
+| `<ServerRouter/>` | The common low-level interface for all router components on server side. |
 | `<Route/>` | Basic component for render some UI when a request page type matches the route page type path. |
 | `<RouteDefault/>` | The default component for render some UI when the type of the request page does not correspond to any of the above components of the `<Route/>`. |
 | `<Link/>` | Provides declarative, accessible navigation around your application. |

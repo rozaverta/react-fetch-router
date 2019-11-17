@@ -4,42 +4,40 @@ import RouterContext from "./RouterContext";
 import PropTypes from "prop-types";
 import {normalizeLink} from "./utils";
 
-class Link extends React.Component
-{
-	constructor(props, context) {
-		super(props, context);
-		const self = this;
-		self.onClick = e => {
+const Link = React.forwardRef(function Link(props, ref) {
+	const {
+		component: Component = "a",
+		to,
+		onClick,
+		disabled,
+		replace,
+		...other
+	} = props;
+
+	const
+		context = React.useContext(RouterContext),
+		clickHandler = (e) => {
 			e && isFunc(e.preventDefault) && e.preventDefault();
-			const {props, context} = self;
-			props.disabled !== true &&
-			context.route(
-				normalizeLink(props.to), {replace: props.replace === true}
-			);
-		}
+			if (disabled !== true) {
+				context.route(
+					normalizeLink(to), {replace: replace === true}
+				);
+				isFunc(onClick) && onClick(e)
+			}
+		};
+
+	if (Component === "a" && !other.href) {
+		other.href = normalizeLink(to);
 	}
 
-	render() {
-		const
-			self = this,
-			{props} = self,
-			{component: Component = "a", to, onClick, disabled, replace, ...other} = props;
-
-		if(Component === "a" && ! other.href) {
-			other.href = normalizeLink(to);
-		}
-
-		if(disabled && (Component === "button" || isFunc(Component))) {
-			other.disabled = true;
-		}
-
-		return (
-			<Component onClick={self.onClick} {...other} />
-		);
+	if (disabled && (Component === "button" || isFunc(Component))) {
+		other.disabled = true;
 	}
-}
 
-Link.contextType = RouterContext;
+	return (
+		<Component ref={ref} onClick={clickHandler} {...other} />
+	);
+});
 
 if (process.env.NODE_ENV !== "production") {
 

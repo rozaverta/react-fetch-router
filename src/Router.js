@@ -15,7 +15,7 @@ import {
 import {setMount, noop, runHook, createPathFromLocation, randId} from "./utils";
 import PropTypes from 'prop-types';
 
-const history = createBrowserHistory({});
+const history = typeof window !== 'undefined' && window.document && window.document.createElement ? createBrowserHistory({}) : {};
 const extendActions = {};
 
 let historyInit = false;
