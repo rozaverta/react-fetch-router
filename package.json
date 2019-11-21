@@ -1,16 +1,18 @@
 {
   "name": "react-fetch-router",
   "description": "Routing library for React. Works with JSON AJAX responses (native fetch object). The router uses page types (derived from the response), rather than URL paths.",
-  "version": "1.4.0",
+  "version": "1.4.5",
   "main": "index.js",
   "module": "esm/react-fetch-router.js",
   "directories": {},
   "repository": "rozaverta/react-fetch-router",
   "files": [
+    "examples",
     "src",
     "cjs",
     "esm",
     "index.js",
+    "polyfills.js",
     "LICENSE",
     "README.md"
   ],

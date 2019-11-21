@@ -1,3 +1,4 @@
+import React from "react";
 import {createPathFromLocation, runHook, setMount} from "./utils";
 import {ACTION_TYPE_INITIALIZE} from "./constants";
 import RouterContext from "./RouterContext";

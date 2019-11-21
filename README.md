@@ -11,6 +11,12 @@ Install with [npm](https://www.npmjs.com/):
 $ npm i --save react-fetch-router
 ```
 
+> For the client side, use polyfills for fetch and Promise:
+
+```js
+import 'react-fetch-router/polyfills';
+```
+
 ## Library components and functions
 
 | **Component** | **Description** |

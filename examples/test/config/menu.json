@@ -1,0 +1,17 @@
+[
+	{
+		"name": "home",
+		"link": "/",
+		"label": "Home page"
+	},
+	{
+		"name": "about",
+		"link": "/about",
+		"label": "About me"
+	},
+	{
+		"name": "contact",
+		"link": "/contact",
+		"label": "Contact"
+	}
+]

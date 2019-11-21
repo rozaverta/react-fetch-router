@@ -38,9 +38,23 @@ function prepareQuery(path, options) {
 		queryPath = {
 			url: options.url || "/api",
 			method,
-			headers: options.headers || (autoHeaders && method === "POST" ? {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"} : {}),
-			body
+			headers: options.headers || (autoHeaders && method === "POST" ? {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"} : {})
 		};
+
+	if(body) {
+		if(method === "GET" || method === "HEAD") {
+			queryPath.url += queryPath.url.includes("?") ? "&" : "?";
+			if (isString(body)) {
+				queryPath.url += body;
+			}
+			else if(body instanceof FormData) {
+				queryPath.url += new URLSearchParams(body).toString();
+			}
+		}
+		else {
+			queryPath.body = body;
+		}
+	}
 
 	["mode", "cache", "credentials", "redirect", "referrer"].forEach(key => {
 		const value = options[key] || null;

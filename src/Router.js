@@ -1,6 +1,6 @@
 import React from "react";
 import query from "./query";
-import {isFunc, isNull, isString} from "typeof-utility";
+import {isFunc, isNull, isPlainObject, isString} from "typeof-utility";
 import {
 	ACTION_TYPE_PAGE_LOAD,
 	ACTION_TYPE_PAGE_REDIRECT,
@@ -82,10 +82,25 @@ class Router extends React.Component {
 				id,
 				page: PAGE_ERROR,
 				data: {
+					code: error.code || 500,
 					path,
-					message: error.message
+					title: error.message,
+					message: error.message,
 				}
 			});
+		}
+
+		function createError(payload) {
+			if( !isPlainObject(payload) ) {
+				payload = {
+					message: payload
+				}
+			}
+			const error = new Error( payload.message || "Unknown error." );
+			if(payload.code) {
+				error.code = payload.code;
+			}
+			return error;
 		}
 
 		function route(path, options = {}) {
@@ -121,7 +136,7 @@ class Router extends React.Component {
 							switch (type) {
 
 								case ANSWER_TYPE_ERROR :
-									failure(new Error(payload), path, id);
+									failure(createError(payload), path, id);
 									break;
 
 								case ANSWER_TYPE_REDIRECT :
@@ -190,10 +205,10 @@ class Router extends React.Component {
 	}
 
 	render() {
-		const {props, contextOptions, refInsider} = this;
+		const {props, contextOptions, insider} = this;
 		return (
 			<RouterInsider
-				ref={refInsider}
+				ref={insider}
 				reload={props.reload === true}
 				componentInitial={props.componentInitial || undefined}
 				contextOptions={contextOptions}

@@ -2,10 +2,6 @@ import {isFunc, isString} from "typeof-utility";
 import {randId, runHook} from "./utils";
 import {ACTION_TYPE_QUERY_CLOSE, ACTION_TYPE_QUERY_OPEN, QUERY_TYPE_UNKNOWN} from "./constants";
 
-// polyfills
-import 'whatwg-fetch';
-import 'es6-promise/auto';
-
 const locked = [];
 
 function parseJson(response) {
@@ -14,7 +10,13 @@ function parseJson(response) {
 		response
 			.json()
 			.then(data => { resolve(data) })
-			.catch(err => { reject(validStatus ? err : new Error(statusText)) })
+			.catch(err => {
+				if(!validStatus) {
+					err = new Error(statusText);
+					err.code = status;
+				}
+				reject(err);
+			})
 	});
 }
 
