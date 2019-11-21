@@ -36,17 +36,20 @@ function randId()
 
 function noop() {}
 
-function runHook(hook, closure, hooks, result) {
+function runHook(hook, closure, event, result) {
 
-	let native = true, hookResult;
+	let native = true, close = false, hookResult;
 
-	if( isFunc(hook)) {
-
-		hooks.closure = closure;
-		hooks.preventDefault = () => { native = false };
+	if( isFunc(hook) ) {
+		event.preventDefault = () => { native = false };
+		event.closed = () => close;
+		event.closure = (result) => {
+			close = true;
+			return closure(result, event);
+		};
 
 		try {
-			hookResult = hook(hooks);
+			hookResult = hook(event);
 			if(hookResult != null && typeOf(result) === typeOf(hookResult)) {
 				result = hookResult
 			}
@@ -56,8 +59,9 @@ function runHook(hook, closure, hooks, result) {
 		}
 	}
 
-	if( native ) {
-		closure(result)
+	if( native && ! close ) {
+		close = true;
+		closure(result, event);
 	}
 }
 
@@ -65,4 +69,33 @@ function createPathFromLocation(location) {
 	return location.pathname + location.search;
 }
 
-export {setMount, getMount, isMount, normalizeLink, randId, noop, runHook, createPathFromLocation, ErrorComponent}
+function isDomElement() {
+	return !! (typeof window !== 'undefined' && window.document && window.document.createElement);
+}
+
+function setRef(ref, value) {
+	if (typeof ref === 'function') {
+		ref(value);
+	} else if (ref) {
+		ref.current = value;
+	}
+}
+
+function useForkRef(refA, refB) {
+	/**
+	 * This will create a new function if the ref props change and are defined.
+	 * This means react will call the old forkRef with `null` and the new forkRef
+	 * with the ref. Cleanup naturally emerges from this behavior
+	 */
+	return React.useMemo(() => {
+		if (refA == null && refB == null) {
+			return null;
+		}
+		return refValue => {
+			setRef(refA, refValue);
+			setRef(refB, refValue);
+		};
+	}, [refA, refB]);
+}
+
+export {setMount, getMount, isMount, normalizeLink, randId, noop, runHook, isDomElement, createPathFromLocation, ErrorComponent, useForkRef}

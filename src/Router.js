@@ -1,6 +1,4 @@
 import React from "react";
-import RouterContext from "./RouterContext";
-import {createBrowserHistory} from "history";
 import query from "./query";
 import {isFunc, isNull, isString} from "typeof-utility";
 import {
@@ -12,171 +10,111 @@ import {
 	PAGE_INIT,
 	QUERY_TYPE_PAGE
 } from "./constants";
-import {setMount, noop, runHook, createPathFromLocation, randId} from "./utils";
+import {runHook, createPathFromLocation, randId, isDomElement} from "./utils";
 import PropTypes from 'prop-types';
+import createClientContext from "./createClientContext";
+import createServerContext from "./createServerContext";
+import RouterInsider from "./RouterInsider";
 
-const history = typeof window !== 'undefined' && window.document && window.document.createElement ? createBrowserHistory({}) : {};
 const extendActions = {};
-
-let historyInit = false;
-
-function getLocation() {
-	if( !historyInit ) {
-		const initialPath = createPathFromLocation(history.location);
-		history.replace(initialPath, {
-			path: initialPath,
-			title: document.title
-		});
+function createRouterAction(action, callback) {
+	if( !extendActions.hasOwnProperty(action) && isFunc(callback) ) {
+		extendActions[action] = callback
 	}
-	return history.location;
-}
-
-function createHistoryState(path, payload, optionsStore) {
-	const store = {
-		...optionsStore, path
-	};
-
-	if (!store.hasOwnProperty("title")) {
-		store.title = payload.data && payload.data.title || document.title
-	}
-
-	return store
-}
-
-function prepareQuery(path, options) {
-
-	let body, autoHeaders = true;
-
-	if (options.body) {
-		body = options.body;
-		if (isString(body)) {
-			body += '&path=' + encodeURI(path)
-		} else {
-			autoHeaders = false;
-			if ((body instanceof FormData) && !body.has("path")) {
-				body.append("path", path)
-			}
-		}
-	} else {
-		body = 'path=' + encodeURI(path)
-	}
-
-	const
-		method = (options.method || "POST").toUpperCase(),
-		queryPath = {
-			url: options.url || "/api",
-			method,
-			headers: options.headers || (autoHeaders && method === "POST" ? {"Content-type": "application/x-www-form-urlencoded; charset=UTF-8"} : {}),
-			body
-		};
-
-	["mode", "cache", "credentials", "redirect", "referrer"].forEach(key => {
-		const value = options[key] || null;
-		if (value && isString(value)) {
-			queryPath[key] = value
-		}
-	});
-
-	return queryPath;
 }
 
 class Router extends React.Component {
 
 	constructor(props) {
 		super(props);
-		const self = this, reload = props.reload === true;
 
-		self.init = false;
-		self.queryOpen = false;
-		self.queryPart = false;
-		self.location = getLocation();
-		self.state = {};
+		const
+			self = this,
+			context = props.context || (isDomElement() ? createClientContext() : createServerContext()),
+			{hook, history, getLocation, createHistoryState, prepareQuery, redirect} = context;
 
-		const hook = () => {
-			return isFunc(self.props.hook) ? self.props.hook : noop;
-		};
+		let queryOpen = false,
+			queryPart = false,
+			location  = getLocation();
 
-		const pushReplace = (method, path, store) => {
+		self.insider = React.createRef();
+
+		function pushReplace(method, path, store) {
 			const newStore = {...store, path};
 			if (isNull(newStore.title)) {
 				newStore.title = document.title
 			}
 			history[method](path, newStore)
-		};
+		}
 
-		const testPart = () => {
-			if (self.queryPart) {
-				const {path, options} = self.queryPart;
-				self.queryPart = false;
+		function testPart() {
+			if(queryPart) {
+				const {path, options} = queryPart;
+				queryPart = false;
 				route(path, options)
 			}
-		};
+		}
 
-		const render = state => {
+		function render(state) {
 			const closure = state => {
-				self.queryOpen = false;
-				self.setState(state);
+				queryOpen = false;
+				self.insider.current.setState(state);
 				testPart();
 			};
-
-			runHook(hook(), closure, {
+			runHook(hook, closure, {
 				type: ACTION_TYPE_PAGE_LOAD,
 				id: state.id,
 				page: state.page,
 				data: state.data
-			}, state)
-		};
+			}, state);
+		}
 
-		const success = (payload, id) => {
+		function success(payload, id) {
 			render({
 				id,
 				page: String(payload.page),
 				data: payload.data
-			})
-		};
+			});
+		}
 
-		const failure = (error, path, id) => {
+		function failure(error, path, id) {
 			render({
 				id,
-				page: self.props.typePageError || PAGE_ERROR,
+				page: PAGE_ERROR,
 				data: {
 					path,
 					message: error.message
 				}
-			})
-		};
+			});
+		}
 
-		const redirect = location => {
-			window.location = location
-		};
-
-		const route = (path, options = {}) => {
+		function route(path, options = {}) {
 
 			const wait = () => {
-				self.queryPart = {path, options}
+				queryPart = {path, options}
 			};
 
-			if (self.queryOpen) {
+			if (queryOpen) {
 				wait()
-			} else {
-				self.queryOpen = true;
+			}
+			else {
+				queryOpen = true;
 
-				const
-					{
+				const {
 						replace,
 						historyState = {},
 						...fetchOptions
 					} = options,
 					id = randId(),
-					queryProps = (self.props.prepareQuery || prepareQuery)(path, fetchOptions, prepareQuery);
+					queryProps = prepareQuery(path, fetchOptions);
 
 				query(
 					queryProps,
 					{
 						id,
-						hook: hook(),
+						hook,
 						type: QUERY_TYPE_PAGE,
-						success(json) {
+						success(json, event) {
 
 							const {type, path: changePath = false, payload} = json;
 
@@ -187,17 +125,17 @@ class Router extends React.Component {
 									break;
 
 								case ANSWER_TYPE_REDIRECT :
-									self.queryOpen = false;
-									runHook(hook(), redirect, {type: ACTION_TYPE_PAGE_REDIRECT, to: payload}, payload);
+									queryOpen = false;
+									runHook(hook, redirect, {type: ACTION_TYPE_PAGE_REDIRECT, to: payload}, payload);
 									break;
 
 								case ANSWER_TYPE_PAGE :
 									if (isString(changePath) && changePath[0] === "/") {
-										path = changePath
+										path = changePath;
 									}
 									const
-										method = replace || path === createPathFromLocation(self.location) ? "replace" : "push",
-										store = (self.props.createHistoryState || createHistoryState)(path, payload, historyState, createHistoryState);
+										method = replace || path === createPathFromLocation(location) ? "replace" : "push",
+										store = createHistoryState(path, payload, historyState);
 
 									pushReplace(method, path, store);
 									success(payload, id);
@@ -205,111 +143,71 @@ class Router extends React.Component {
 
 								default :
 									if(extendActions.hasOwnProperty(type)) {
-										self.queryOpen = false;
-										runHook(hook(), extendActions[type], {type, payload}, payload)
+										queryOpen = false;
+										runHook(hook, extendActions[type], {type, payload, unlock: event.unlock}, payload);
 									}
 									else {
-										failure(new Error(`Unknown server answer type: ${type}`), path, id)
+										failure(new Error(`Unknown server answer type: ${type}`), path, id);
 									}
 									break;
 							}
 						},
 
 						error(e) {
-							failure(e, path, id)
+							failure(e, path, id);
 						},
 
 						abort() {
-							self.queryOpen = false;
-							wait()
+							queryOpen = false;
+							wait();
 						}
 					}
 				);
 			}
-		};
+		}
 
-		self.unlisten = history.listen((location, action) => {
-
-			const {state} = location;
-
-			self.location = location;
+		self.componentWillUnmount = history.listen((loc, action) => {
+			const {state} = loc;
+			location = loc;
 			document.title = state.title;
-
 			// from history
 			if (action === "POP") {
-				route(createPathFromLocation(location), {replace: true, historyState: state})
+				route(createPathFromLocation(loc), {replace: true, historyState: state})
 			}
 		});
 
-		self.route = route;
-		self.push = (path, store = {}) => {
-			pushReplace('push', path, store)
+		self.contextOptions = {
+			... context,
+			getContextLocation() { return location },
+			route,
+			push(path, store = {}) { pushReplace('push', path, store); },
+			replace(path, store = {}) { pushReplace('replace', path, store); },
 		};
-		self.replace = (path, store = {}) => {
-			pushReplace('replace', path, store)
-		};
-		self.getLocation = () => self.location;
-		self.getHistory = () => history;
-
-		// initial function
-
-		if(reload) {
-			self.reload = () => {
-				self.init = true;
-				self.reload = false;
-				route(createPathFromLocation(self.location), {change: true})
-			}
-		}
-		else {
-			self.reload = () => {
-				self.init = true;
-				self.reload = false;
-				render({
-					id: randId(),
-					page: props.page || props.typePageInit || PAGE_INIT,
-					data: props.data || {}
-				})
-			}
-		}
 	}
 
-	componentDidMount() {
-		this.reload && this.reload()
-	}
-
-	componentWillUnmount() {
-		this.unlisten && this.unlisten()
+	shouldComponentUpdate(nextProps, nextState, nextContext) {
+		return false;
 	}
 
 	render() {
-
-		// initial state
-		const self = this;
-		if(! self.init) {
-			const {component: Component = false} = self.props;
-			return (
-				Component ? <Component /> : null
-			)
-		}
-
-		const {props, state, getLocation: location, getHistory: history, route, push, replace} = self;
-		setMount(null);
-
+		const {props, contextOptions, refInsider} = this;
 		return (
-			<RouterContext.Provider
-				children={props.children || null}
-				value={{
-					page: state.page,
-					data: state.data,
-					location, history, route, push, replace
-				}}
+			<RouterInsider
+				ref={refInsider}
+				reload={props.reload === true}
+				componentInitial={props.componentInitial || undefined}
+				contextOptions={contextOptions}
+				id={randId()}
+				page={props.page || PAGE_INIT}
+				data={props.data || {}}
+				children={props.children}
 			/>
 		);
 	}
 }
 
 Router.defaultProps = {
-	reload: false
+	reload: false,
 };
 
 if (process.env.NODE_ENV !== "production") {
@@ -329,34 +227,9 @@ if (process.env.NODE_ENV !== "production") {
 		page: PropTypes.string,
 
 		/**
-		 * Initial controller name (alias for `page` property)
-		 */
-		typePageInit: PropTypes.string,
-
-		/**
-		 * Error controller name
-		 */
-		typePageError: PropTypes.string,
-
-		/**
 		 * Data page
 		 */
 		data: PropTypes.object,
-
-		/**
-		 * Hook function to intercept events, abort events or modify data
-		 */
-		hook: PropTypes.func,
-
-		/**
-		 * Prepare query properties before fetch query
-		 */
-		prepareQuery: PropTypes.func,
-
-		/**
-		 * Create state history from page data
-		 */
-		createHistoryState: PropTypes.func,
 
 		/**
 		 * Initial root component
@@ -365,10 +238,5 @@ if (process.env.NODE_ENV !== "production") {
 	};
 }
 
-export function createRouterAction(action, callback) {
-	if( !extendActions.hasOwnProperty(action) && isFunc(callback) ) {
-		extendActions[action] = callback
-	}
-}
-
+export {createRouterAction};
 export default Router;

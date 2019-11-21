@@ -144,7 +144,6 @@ echo json_encode([
 | **Component** | **Description** |
 | --- | --- |
 | `<Router/>` | The common low-level interface for all router components. |
-| `<ServerRouter/>` | The common low-level interface for all router components on server side. |
 | `<Route/>` | Basic component for render some UI when a request page type matches the route page type path. |
 | `<RouteDefault/>` | The default component for render some UI when the type of the request page does not correspond to any of the above components of the `<Route/>`. |
 | `<Link/>` | Provides declarative, accessible navigation around your application. |
@@ -154,6 +153,8 @@ echo json_encode([
 | `query` | A wrapper for the native `fetch` object. |
 | `createReduxReducer` | Integration with the `redux` library. Creates a new reducer. As arguments, the function accepts current store object, context, and hook function for redirection. |
 | `createRouterAction` | Create custom router action. |
+| `createClientContext(options = {})` | Creates a value for the client side of RouterContext object. |
+| `createServerContext(options = {})` | Creates a value for the server side of RouterContext object. |
 
 ___
 

@@ -29,46 +29,40 @@ function matchType(from, page) {
 	return false
 }
 
-class Route extends React.Component {
-	render() {
-		const {props, context} = this,
-		{
+const Route = React.forwardRef(function Route(props, ref) {
+	const
+		context = React.useContext(RouterContext), {
 			page,
 			data,
-		} = context,
-		{
+		} = context, {
 			from,
 			chunk,
 			component: Component = ErrorComponent,
 			componentProps = {}
 		} = props;
 
-		if(!chunk && isMount()) {
-			return null
-		}
-
-		if(matchType(from, page)) {
-			if(!chunk) {
-				setMount(page)
-			}
-			return (
-				<Component page={page} {...componentProps} {...data} />
-			)
-		}
-
+	if(!chunk && isMount()) {
 		return null
 	}
-}
 
-Route.contextType = RouterContext;
+	if(matchType(from, page)) {
+		if(!chunk) {
+			setMount(page)
+		}
+		return (
+			<Component ref={ref} {...componentProps} page={page} {...data} />
+		)
+	}
+
+	return null
+});
+
 Route.defaultProps = {
 	chunk: false
 };
 
 if (process.env.NODE_ENV !== "production") {
-
 	Route.displayName = "Route";
-
 	Route.propTypes = {
 
 		/**

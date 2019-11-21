@@ -2,18 +2,20 @@ import {isFunc, isString} from "typeof-utility";
 import {randId, runHook} from "./utils";
 import {ACTION_TYPE_QUERY_CLOSE, ACTION_TYPE_QUERY_OPEN, QUERY_TYPE_UNKNOWN} from "./constants";
 
+// polyfills
+import 'whatwg-fetch';
+import 'es6-promise/auto';
+
 const locked = [];
 
-function status(response) {
-	if (response.status >= 200 && response.status < 300) {
-		return Promise.resolve(response)
-	} else {
-		return Promise.reject(new Error(response.statusText))
-	}
-}
-
-function json(response) {
-	return response.json()
+function parseJson(response) {
+	const {status, statusText} = response, validStatus = status >= 200 && status < 300;
+	return new Promise((resolve, reject) => {
+		response
+			.json()
+			.then(data => { resolve(data) })
+			.catch(err => { reject(validStatus ? err : new Error(statusText)) })
+	});
 }
 
 function unlock(lock) {
@@ -24,50 +26,48 @@ function unlock(lock) {
 }
 
 function complete(success, hook, id, type, callback, result) {
-
-	const closure = result => {
+	const closure = (result, event) => {
 		try {
-			callback(result)
+			callback(result, event)
 		}
 		catch(e) {}
 		unlock(type)
 	};
-
 	runHook(
 		hook, closure, {
 			type: ACTION_TYPE_QUERY_CLOSE,
 			success,
 			[success ? "response" : "error"]: result,
 			queryType: type,
-			id
+			id,
+			unlock() {
+				unlock(type)
+			}
 		}, result);
 }
 
+function newFetchObject(props) {
+	if(isString(props)) {
+		return fetch(props);
+	}
+	else {
+		const {url, ...init} = props;
+		return fetch(url, init);
+	}
+}
+
 export default function query(props, options = {}) {
-
 	const {type = QUERY_TYPE_UNKNOWN, id: queryId = false, abort} = options;
-
-	if(locked.indexOf(type) > -1) {
+	if(locked.includes(type)) {
 		isFunc(abort) && abort(type)
 	}
 	else {
 		locked.push(type);
 		const {hook, success, error} = options, id = queryId || randId();
-		let _fetch;
-
-		if(isString(props)) {
-			_fetch = () => fetch(props);
-		}
-		else {
-			const {url, ...init} = props;
-			_fetch = () => fetch(url, init);
-		}
-
 		runHook(
 			hook, () => {
-				_fetch()
-					.then(status)
-					.then(json)
+				newFetchObject(props)
+					.then(parseJson)
 					.then(arg1 => { complete(true, hook, id, type, success, arg1) })
 					.catch(arg1 => { complete(false, hook, id, type, error, arg1) });
 			}, {

@@ -15,13 +15,11 @@ const Link = React.forwardRef(function Link(props, ref) {
 	} = props;
 
 	const
-		context = React.useContext(RouterContext),
+		route = React.useContext(RouterContext).route,
 		clickHandler = (e) => {
 			e && isFunc(e.preventDefault) && e.preventDefault();
 			if (disabled !== true) {
-				context.route(
-					normalizeLink(to), {replace: replace === true}
-				);
+				route(normalizeLink(to), {replace: replace === true});
 				isFunc(onClick) && onClick(e)
 			}
 		};
@@ -63,8 +61,7 @@ if (process.env.NODE_ENV !== "production") {
 		/**
 		 * Use history replacement method (do not save in history)
 		 */
-		replace: PropTypes.bool
-
+		replace: PropTypes.bool,
 	};
 }
 

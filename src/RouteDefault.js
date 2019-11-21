@@ -1,12 +1,11 @@
 import React from "react";
-import Route from "./Route";
 import {isMount, setMount, ErrorComponent} from "./utils";
 import PropTypes from "prop-types";
+import RouterContext from "./RouterContext";
 
-class RouteDefault extends Route {
-	render() {
-		const {props, context} = this,
-		{
+const RouteDefault = React.forwardRef(function RouteDefault(props, ref) {
+	const
+		context = React.useContext(RouterContext), {
 			page,
 			data,
 		} = context,
@@ -15,24 +14,20 @@ class RouteDefault extends Route {
 			componentProps = {}
 		} = props;
 
-		if(isMount()) {
-			return null
-		}
-		else {
-			setMount(page);
-			return (
-				<Component page={page} {...componentProps} {...data} />
-			)
-		}
+	if(isMount()) {
+		return null
 	}
-}
+
+	setMount(page);
+	return (
+		<Component ref={ref} {...componentProps} page={page} {...data} />
+	)
+});
 
 RouteDefault.defaultProps = {};
 
 if (process.env.NODE_ENV !== "production") {
-
 	RouteDefault.displayName = "RouteDefault";
-
 	RouteDefault.propTypes = {
 
 		/**

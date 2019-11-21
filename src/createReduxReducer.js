@@ -1,4 +1,10 @@
-import {ACTION_TYPE_PAGE_LOAD, ACTION_TYPE_QUERY_OPEN, ACTION_TYPE_QUERY_CLOSE, ACTION_TYPE_PAGE_REDIRECT} from "./constants";
+import {
+	ACTION_TYPE_PAGE_LOAD,
+	ACTION_TYPE_QUERY_OPEN,
+	ACTION_TYPE_QUERY_CLOSE,
+	ACTION_TYPE_PAGE_REDIRECT,
+	ACTION_TYPE_INITIALIZE
+} from "./constants";
 import {isFunc} from "typeof-utility";
 
 export default function createReduxReducer(store, pageContext, redirectHook) {
@@ -45,6 +51,7 @@ export default function createReduxReducer(store, pageContext, redirectHook) {
 		switch(type) {
 
 			case ACTION_TYPE_PAGE_LOAD:
+			case ACTION_TYPE_INITIALIZE:
 				closure = e.closure;
 				e.preventDefault();
 				store.dispatch({

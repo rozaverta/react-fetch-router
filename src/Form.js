@@ -2,44 +2,33 @@ import React from "react";
 import {isFunc} from "typeof-utility";
 import PropTypes from "prop-types";
 import RouterContext from "./RouterContext";
-import {createPathFromLocation, normalizeLink} from "./utils";
+import {createPathFromLocation, normalizeLink, useForkRef} from "./utils";
 
-class Form extends React.Component
-{
-	constructor(props, context) {
-		super(props, context);
-		const self = this;
-		self.form = React.createRef();
-		self.onSubmit = e => {
-			e && isFunc(e.preventDefault) && e.preventDefault();
-			const {props, context} = self;
-			const options = (form) => {
-				return {
-					body: new FormData(form)
-				}
-			};
-			props.disabled !== true &&
-			context.route(
-				normalizeLink(props.action == null ? createPathFromLocation(context.location()) : props.action),
-				(props.prepareSubmitOptions || options)(self.form.current, props, options)
-			);
-		}
-	}
+const Form = React.forwardRef(function Form(props, ref) {
 
-	render() {
-		const
-			{props, form} = this,
-			{component: Component = "form", prepareSubmitOptions, onSubmit, disabled, ...other} = props;
+	const {formOptions, location, route} = React.useContext(RouterContext);
+	const formRef = React.useRef(null);
+	const forkRef = useForkRef(formRef, ref);
+	const {
+		component: Component = "form",
+		onSubmit,
+		disabled,
+		...other
+	} = props;
 
-		other[isFunc(Component) ? "inputRef" : "ref"] = form;
-
-		return (
-			<Component onSubmit={this.onSubmit} {...other} />
+	const submitHandle = e => {
+		e && isFunc(e.preventDefault) && e.preventDefault();
+		disabled !== true &&
+		route(
+			normalizeLink(props.action == null ? createPathFromLocation(location) : props.action),
+			formOptions(formRef.current, props)
 		);
-	}
-}
+	};
 
-Form.contextType = RouterContext;
+	return (
+		<Component ref={forkRef} onSubmit={submitHandle} {...other} />
+	);
+});
 
 if (process.env.NODE_ENV !== "production") {
 
@@ -51,11 +40,6 @@ if (process.env.NODE_ENV !== "production") {
 		 * Form component (default "form")
 		 */
 		component: PropTypes.oneOfType([PropTypes.string, PropTypes.func, PropTypes.object]),
-
-		/**
-		 * Preparation of data (query options) before sending
-		 */
-		prepareSubmitOptions: PropTypes.func,
 
 		/**
 		 * Disabled form
